@@ -1,4 +1,5 @@
 import ee
+import geemap
 import json
 import os
 import warnings
@@ -18,7 +19,26 @@ warnings.filterwarnings("ignore")
 
 @st.cache_data
 def ee_authenticate(token_name="EARTHENGINE_TOKEN"):
-    geemap.ee_initialize(token_name=token_name)
+    try:
+        # Opción 1: Token desde variable de entorno (para Hugging Face/Streamlit Cloud)
+        if os.environ.get(token_name):
+            geemap.ee_initialize(token_name=token_name)
+        
+        # Opción 2: Autenticación interactiva (para desarrollo local)
+        else:
+            ee_account = st.secrets.get("EE_ACCOUNT")  # Usar secrets.toml en local
+            if ee_account:
+                credentials = ee.ServiceAccountCredentials(
+                    email=ee_account["email"],
+                    key_data=ee_account["key_data"]
+                )
+                ee.Initialize(credentials)
+            else:
+                geemap.ee_initialize()  # Abre ventana de autenticación
+                
+    except Exception as e:
+        st.error(f"Error de autenticación con GEE: {str(e)}")
+        st.stop()  # Detiene la app si falla
 
 
 st.sidebar.info(
